@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Payment Receipt Generator (A6)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -12,27 +12,28 @@
     --card: #ffffff;
   }
   * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-  body { margin: 0; padding: 20px; background: var(--bg); color: #1e293b; }
+  body { margin: 0; padding: 15px; background: var(--bg); color: #1e293b; -webkit-tap-highlight-color: transparent; }
 
-  .no-print { max-width: 1100px; margin: 0 auto; }
+  .no-print { max-width: 1100px; margin: 0 auto; width: 100%; }
   
   .top-status-bar {
     display: flex; justify-content: space-between; align-items: center;
-    background: #0f172a; color: #fff; padding: 10px 18px;
+    background: #0f172a; color: #fff; padding: 12px 18px;
     border-radius: 8px; margin-bottom: 20px; font-size: 13px;
+    gap: 10px;
   }
-  .sync-badge { background: #1e293b; padding: 4px 10px; border-radius: 4px; font-weight: 600; }
+  .sync-badge { background: #1e293b; padding: 4px 10px; border-radius: 4px; font-weight: 600; white-space: nowrap; }
 
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; }
   .card { background: var(--card); padding: 22px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
   
   h2, h3 { margin-top: 0; color: var(--primary); }
   label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; margin-top: 10px; }
-  input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; outline: none; }
+  input, select, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; outline: none; transition: border-color 0.2s; }
   input:focus, select:focus, textarea:focus { border-color: var(--primary); }
   
   .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
-  button { cursor: pointer; padding: 8px 14px; border: none; border-radius: 4px; font-weight: 600; font-size: 13px; transition: 0.2s; }
+  button { cursor: pointer; padding: 10px 14px; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; transition: 0.2s; }
   .btn-primary { background: #2563eb; color: #fff; }
   .btn-success { background: #16a34a; color: #fff; }
   .btn-warning { background: #d97706; color: #fff; }
@@ -41,11 +42,22 @@
   .btn-secondary { background: #64748b; color: #fff; }
   button:hover { opacity: 0.9; }
 
-  .table-box { max-height: 380px; overflow-y: auto; margin-top: 15px; border: 1px solid #cbd5e1; border-radius: 4px; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .table-box { max-height: 380px; overflow-y: auto; overflow-x: auto; margin-top: 15px; border: 1px solid #cbd5e1; border-radius: 6px; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 480px; }
   th, td { padding: 8px 10px; border: 1px solid #e2e8f0; text-align: left; }
   th { background: #f1f5f9; position: sticky; top: 0; z-index: 1; }
   .search-box { margin-top: 12px; }
+
+  /* ================= RESPONSIVE MOBILE TWEAKS ================= */
+  @media (max-width: 768px) {
+    body { padding: 10px; }
+    .top-status-bar { flex-direction: column; align-items: stretch; text-align: center; gap: 8px; padding: 10px 14px; }
+    .top-status-bar > div:last-child { justify-content: space-between; width: 100%; display: flex; }
+    .grid { grid-template-columns: 1fr; gap: 15px; }
+    .card { padding: 16px; }
+    .btn-row { flex-direction: column; gap: 8px; }
+    .btn-row button { width: 100%; padding: 12px; font-size: 14px; }
+  }
 
   /* ================= DHASU A6 PRINT LAYOUT ================= */
   @page {
@@ -142,7 +154,7 @@
     <div style="display:flex; align-items:center; gap:8px;">
       <span>Cloud:</span>
       <span id="syncStatus" class="sync-badge" style="color:#38bdf8;">Connecting...</span>
-      <button style="padding:2px 8px; font-size:11px; background:#334155; color:#fff;" onclick="syncFromGitHub(true)">🔄 Sync Now</button>
+      <button style="padding:4px 10px; font-size:12px; background:#334155; color:#fff;" onclick="syncFromGitHub(true)">🔄 Sync Now</button>
     </div>
   </div>
 
@@ -479,9 +491,9 @@
         <td><strong>₹ ${formatIndianCurrency(r.amount)}</strong></td>
         <td>
           <div style="display:flex; gap:4px;">
-            <button style="padding:3px 6px; font-size:11px;" class="btn-primary" onclick="reprint(${r.id})" title="Print">🖨️</button>
-            <button style="padding:3px 6px; font-size:11px;" class="btn-warning" onclick="editRecord(${r.id})" title="Edit">✏️</button>
-            <button style="padding:3px 6px; font-size:11px;" class="btn-danger" onclick="deleteRecord(${r.id})" title="Delete">🗑️</button>
+            <button style="padding:4px 8px; font-size:11px;" class="btn-primary" onclick="reprint(${r.id})" title="Print">🖨️</button>
+            <button style="padding:4px 8px; font-size:11px;" class="btn-warning" onclick="editRecord(${r.id})" title="Edit">✏️</button>
+            <button style="padding:4px 8px; font-size:11px;" class="btn-danger" onclick="deleteRecord(${r.id})" title="Delete">🗑️</button>
           </div>
         </td>
       `;
