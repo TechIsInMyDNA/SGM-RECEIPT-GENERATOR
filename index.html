@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment Receipt Generator (A6)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --primary: #1e3a8a;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  body { margin: 0; padding: 20px; background: var(--bg); color: #1e293b; }
+
+  .no-print {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+  
+  h2, h3 { margin-top: 0; color: var(--primary); }
+  label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; margin-top: 10px; }
+  input, select, textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; }
+  
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+  button {
+    cursor: pointer; padding: 8px 14px; border: none; border-radius: 4px; font-weight: 600; font-size: 13px; transition: 0.2s;
+  }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-success { background: #16a34a; color: #fff; }
+  .btn-dark { background: #0f172a; color: #fff; }
+  .btn-secondary { background: #64748b; color: #fff; }
+  button:hover { opacity: 0.9; }
+
+  /* GitHub Config Box */
+  .config-box { background: #e2e8f0; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 12px; }
+  .config-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* History Table */
+  .table-box { max-height: 250px; overflow-y: auto; margin-top: 15px; border: 1px solid #cbd5e1; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { padding: 8px; border: 1px solid #e2e8f0; text-align: left; }
+  th { background: #f8fafc; position: sticky; top: 0; }
+
+  /* A6 Print Layout */
+  @page {
+    size: A6 portrait;
+    margin: 8mm;
+  }
+
+  .print-container {
+    display: none;
+    width: 100%;
+    height: 100%;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #000;
+  }
+
+  .receipt-box {
+    border: 1.5px solid #000;
+    padding: 12px;
+    min-height: 130mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .row-line { margin-bottom: 6px; }
+  .bold { font-weight: bold; }
+  .footer-sign {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 35px;
+    padding: 0 20px;
+    font-weight: bold;
+  }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .no-print { display: none !important; }
+    .print-container { display: block !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <!-- GitHub Config Bar -->
+  <div class="card config-box">
+    <strong>GitHub Sync Config (data.json update directly)</strong>
+    <div class="config-grid" style="margin-top: 8px;">
+      <div>
+        <label style="margin:0;">GitHub Repo (Owner/Repo):</label>
+        <input type="text" id="ghRepo" placeholder="username/repo-name">
+      </div>
+      <div>
+        <label style="margin:0;">Branch:</label>
+        <input type="text" id="ghBranch" value="main">
+      </div>
+      <div>
+        <label style="margin:0;">Personal Access Token (PAT):</label>
+        <input type="password" id="ghToken" placeholder="ghp_xxxx">
+      </div>
+    </div>
+    <div style="margin-top:8px;">
+      <button class="btn-dark" onclick="saveGHConfig()">Save GitHub Token & Config</button>
+      <button class="btn-secondary" onclick="syncFromGitHub()">Sync from GitHub data.json</button>
+      <span id="syncStatus" style="font-weight: bold; margin-left: 10px;"></span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- Form Section -->
+    <div class="card">
+      <h3>Generate Receipt</h3>
+      <form id="receiptForm" onsubmit="event.preventDefault(); printReceipt();">
+        <label>Date (DT):</label>
+        <input type="text" id="rDate" required>
+
+        <label>Receipt No (RECEIPT NO):</label>
+        <input type="text" id="rNo" value="FY25-26/" required>
+
+        <label>Received From (FROM):</label>
+        <input type="text" id="rFrom" required placeholder="Name / Firm Name">
+
+        <!-- Payment Mode Dropdown -->
+        <label>Payment Mode:</label>
+        <select id="rModeSelect" onchange="handleModeChange()">
+          <option value="UPI">UPI</option>
+          <option value="CHEQUE">CHEQUE</option>
+          <option value="NEFT">NEFT</option>
+          <option value="RTGS">RTGS</option>
+          <option value="CASH">CASH</option>
+          <option value="OTHER">OTHER</option>
+        </select>
+
+        <!-- Dynamic Reference Number Field -->
+        <div id="modeNumberContainer">
+          <label id="modeNumberLabel">UPI Transaction ID / Ref No:</label>
+          <input type="text" id="rModeNumber" placeholder="Enter UPI Ref No / TXN ID">
+        </div>
+
+        <label>Amount (AMOUNT: S):</label>
+        <input type="number" step="any" id="rAmount" required placeholder="e.g. 5000">
+
+        <label>Remarks (REMARKS):</label>
+        <textarea id="rRemarks" rows="2" placeholder="e.g. On account / Clear balance"></textarea>
+
+        <div class="btn-row">
+          <button type="submit" class="btn-primary">🖨️ Print / Save PDF (A6)</button>
+          <button type="button" class="btn-success" onclick="saveRecordOnly()">💾 Save Only</button>
+          <button type="button" class="btn-secondary" onclick="resetForm()">Clear Form</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Data Management Section -->
+    <div class="card">
+      <h3>Records & Backups</h3>
+      <div class="btn-row" style="margin-top: 0;">
+        <button class="btn-success" onclick="exportToExcel()">📊 Export to Excel</button>
+        <button class="btn-dark" onclick="downloadBackup()">📥 Download JSON Backup</button>
+        <button class="btn-secondary" onclick="document.getElementById('restoreInput').click()">📤 Restore JSON</button>
+        <input type="file" id="restoreInput" accept=".json" style="display:none;" onchange="restoreBackup(event)">
+      </div>
+
+      <div class="table-box">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Receipt No</th>
+              <th>From</th>
+              <th>Mode / Details</th>
+              <th>Amount</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="recordsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Exact A6 Printable Template -->
+<div class="print-container">
+  <div class="receipt-box">
+    <div>
+      <div class="row-line"><span class="bold">DT: - </span><span id="pDate"></span></div>
+      <div class="row-line" style="margin-top: 8px;"><span class="bold">HEREBY, ARE THE DETAILS OF PAYMENT INSTRUMENT RECEIVED: -</span></div>
+      <div class="row-line"><span class="bold">CHEQUE NO/UPI/NEFT/RTGS/CASH: - </span><span id="pMode"></span></div>
+      <div class="row-line"><span class="bold">AMOUNT: - S </span><span id="pAmount"></span></div>
+      <div class="row-line"><span class="bold">FROM: - </span><span id="pFrom"></span></div>
+      <div class="row-line"><span class="bold">RECEIPT NO: - </span><span id="pNo"></span></div>
+      <div class="row-line"><span class="bold">REMARKS: - </span><span id="pRemarks"></span></div>
+      <div class="row-line" style="margin-top: 12px;"><span class="bold">PLEASE, ACKNOWLEDGE THIS AS RECEIVED RECEIPT.</span></div>
+    </div>
+
+    <div class="footer-sign">
+      <span>SIGN</span>
+      <span>STAMP</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  let receipts = JSON.parse(localStorage.getItem('receipt_records') || '[]');
+  let ghFileSha = null;
+
+  window.onload = function() {
+    const today = new Date();
+    const d = String(today.getDate()).padStart(2, '0');
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const y = today.getFullYear();
+    document.getElementById('rDate').value = `${d}-${m}-${y}`;
+
+    document.getElementById('ghRepo').value = localStorage.getItem('gh_repo') || '';
+    document.getElementById('ghBranch').value = localStorage.getItem('gh_branch') || 'main';
+    document.getElementById('ghToken').value = localStorage.getItem('gh_token') || '';
+
+    handleModeChange();
+    renderTable();
+  };
+
+  function handleModeChange() {
+    const mode = document.getElementById('rModeSelect').value;
+    const label = document.getElementById('modeNumberLabel');
+    const input = document.getElementById('rModeNumber');
+    const container = document.getElementById('modeNumberContainer');
+
+    if (mode === 'CASH') {
+      container.style.display = 'none';
+      input.value = '';
+    } else {
+      container.style.display = 'block';
+      if (mode === 'CHEQUE') {
+        label.innerText = 'Cheque No:';
+        input.placeholder = 'e.g. 000123';
+      } else if (mode === 'UPI') {
+        label.innerText = 'UPI Transaction ID / Ref No:';
+        input.placeholder = 'e.g. 423871928372 or abc@upi';
+      } else if (mode === 'NEFT') {
+        label.innerText = 'NEFT UTR No:';
+        input.placeholder = 'e.g. PUNBH23098123...';
+      } else if (mode === 'RTGS') {
+        label.innerText = 'RTGS UTR No:';
+        input.placeholder = 'e.g. HDFCR202309...';
+      } else {
+        label.innerText = 'Reference / Details:';
+        input.placeholder = 'Enter instrument details';
+      }
+    }
+  }
+
+  function saveGHConfig() {
+    localStorage.setItem('gh_repo', document.getElementById('ghRepo').value.trim());
+    localStorage.setItem('gh_branch', document.getElementById('ghBranch').value.trim());
+    localStorage.setItem('gh_token', document.getElementById('ghToken').value.trim());
+    alert('GitHub Configuration Saved Locally!');
+  }
+
+  function getCombinedMode() {
+    const mode = document.getElementById('rModeSelect').value;
+    const num = document.getElementById('rModeNumber').value.trim();
+    if (mode === 'CASH') {
+      return 'CASH';
+    }
+    return num ? `${mode}: ${num}` : mode;
+  }
+
+  function getFormData() {
+    return {
+      id: Date.now(),
+      date: document.getElementById('rDate').value,
+      receiptNo: document.getElementById('rNo').value,
+      from: document.getElementById('rFrom').value,
+      modeSelect: document.getElementById('rModeSelect').value,
+      modeNumber: document.getElementById('rModeNumber').value,
+      mode: getCombinedMode(),
+      amount: document.getElementById('rAmount').value,
+      remarks: document.getElementById('rRemarks').value,
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  function populatePrintLayout(data) {
+    document.getElementById('pDate').innerText = data.date;
+    document.getElementById('pNo').innerText = data.receiptNo;
+    document.getElementById('pFrom').innerText = data.from;
+    document.getElementById('pMode').innerText = data.mode;
+    document.getElementById('pAmount').innerText = data.amount;
+    document.getElementById('pRemarks').innerText = data.remarks;
+  }
+
+  function printReceipt() {
+    const data = getFormData();
+    if (!data.from || !data.amount) {
+      alert('Please fill required fields!');
+      return;
+    }
+    receipts.unshift(data);
+    localStorage.setItem('receipt_records', JSON.stringify(receipts));
+    renderTable();
+    populatePrintLayout(data);
+    
+    pushToGitHub();
+
+    setTimeout(() => {
+      window.print();
+    }, 200);
+  }
+
+  function saveRecordOnly() {
+    const data = getFormData();
+    if (!data.from || !data.amount) {
+      alert('Please fill required fields (From, Amount)!');
+      return;
+    }
+    receipts.unshift(data);
+    localStorage.setItem('receipt_records', JSON.stringify(receipts));
+    renderTable();
+    pushToGitHub();
+    alert('Saved successfully!');
+  }
+
+  function reprint(id) {
+    const item = receipts.find(r => r.id === id);
+    if (!item) return;
+    populatePrintLayout(item);
+    window.print();
+  }
+
+  function deleteRecord(id) {
+    if (!confirm('Are you sure you want to delete this record?')) return;
+    receipts = receipts.filter(r => r.id !== id);
+    localStorage.setItem('receipt_records', JSON.stringify(receipts));
+    renderTable();
+    pushToGitHub();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('recordsBody');
+    tbody.innerHTML = '';
+    receipts.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.date}</td>
+        <td>${r.receiptNo}</td>
+        <td>${r.from}</td>
+        <td>${r.mode}</td>
+        <td>${r.amount}</td>
+        <td>
+          <button style="padding:2px 6px; font-size:11px;" class="btn-primary" onclick="reprint(${r.id})">Print</button>
+          <button style="padding:2px 6px; font-size:11px; background:#dc2626; color:#fff;" onclick="deleteRecord(${r.id})">Del</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function resetForm() {
+    document.getElementById('receiptForm').reset();
+    const today = new Date();
+    const d = String(today.getDate()).padStart(2, '0');
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const y = today.getFullYear();
+    document.getElementById('rDate').value = `${d}-${m}-${y}`;
+    document.getElementById('rNo').value = 'FY25-26/';
+    handleModeChange();
+  }
+
+  // Export to Excel
+  function exportToExcel() {
+    if (receipts.length === 0) {
+      alert('No data available to export.');
+      return;
+    }
+    const ws = XLSX.utils.json_to_sheet(receipts);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Receipts");
+    XLSX.writeFile(wb, `Payment_Receipts_${Date.now()}.xlsx`);
+  }
+
+  // JSON Local Backup & Restore
+  function downloadBackup() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(receipts, null, 2));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute("href", dataStr);
+    dlAnchor.setAttribute("download", `receipts_backup_${Date.now()}.json`);
+    dlAnchor.click();
+  }
+
+  function restoreBackup(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (Array.isArray(data)) {
+          receipts = data;
+          localStorage.setItem('receipt_records', JSON.stringify(receipts));
+          renderTable();
+          pushToGitHub();
+          alert('Backup restored successfully!');
+        } else {
+          alert('Invalid backup file format.');
+        }
+      } catch (err) {
+        alert('Error parsing JSON file.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // GitHub REST API Direct data.json Commits
+  async function pushToGitHub() {
+    const repo = localStorage.getItem('gh_repo');
+    const branch = localStorage.getItem('gh_branch') || 'main';
+    const token = localStorage.getItem('gh_token');
+    const statusEl = document.getElementById('syncStatus');
+
+    if (!repo || !token) return;
+
+    statusEl.innerText = 'Syncing to GitHub...';
+    statusEl.style.color = '#eab308';
+
+    try {
+      const url = `https://api.github.com/repos/${repo}/contents/data.json`;
+      
+      let sha = ghFileSha;
+      const getRes = await fetch(`${url}?ref=${branch}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (getRes.ok) {
+        const getData = await getRes.json();
+        sha = getData.sha;
+      }
+
+      const contentStr = JSON.stringify(receipts, null, 2);
+      const encodedContent = btoa(unescape(encodeURIComponent(contentStr)));
+
+      const putRes = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          message: `Update data.json [${new Date().toISOString()}]`,
+          content: encodedContent,
+          branch: branch,
+          sha: sha || undefined
+        })
+      });
+
+      if (putRes.ok) {
+        const putData = await putRes.json();
+        ghFileSha = putData.content.sha;
+        statusEl.innerText = 'Synced to GitHub data.json ✓';
+        statusEl.style.color = '#16a34a';
+      } else {
+        throw new Error('Failed to update GitHub');
+      }
+    } catch (e) {
+      console.error(e);
+      statusEl.innerText = 'GitHub Sync Failed (Check Token/Repo)';
+      statusEl.style.color = '#dc2626';
+    }
+  }
+
+  async function syncFromGitHub() {
+    const repo = localStorage.getItem('gh_repo');
+    const branch = localStorage.getItem('gh_branch') || 'main';
+    const token = localStorage.getItem('gh_token');
+    const statusEl = document.getElementById('syncStatus');
+
+    if (!repo || !token) {
+      alert('Fill Repo and Token first.');
+      return;
+    }
+
+    statusEl.innerText = 'Fetching from GitHub...';
+    try {
+      const url = `https://api.github.com/repos/${repo}/contents/data.json?ref=${branch}`;
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        ghFileSha = data.sha;
+        const decoded = decodeURIComponent(escape(atob(data.content)));
+        receipts = JSON.parse(decoded);
+        localStorage.setItem('receipt_records', JSON.stringify(receipts));
+        renderTable();
+        statusEl.innerText = 'Synced from GitHub ✓';
+        statusEl.style.color = '#16a34a';
+      } else {
+        alert('File data.json not found in repository or invalid token.');
+      }
+    } catch (e) {
+      alert('Error fetching from GitHub: ' + e.message);
+    }
+  }
+</script>
+</body>
+</html>
