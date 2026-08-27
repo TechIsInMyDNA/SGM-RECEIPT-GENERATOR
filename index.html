@@ -8,7 +8,7 @@
 <style>
   :root {
     --primary: #1e3a8a;
-    --bg: #f1f5f9;
+    --bg: #f8fafc;
     --card: #ffffff;
   }
   * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -18,14 +18,34 @@
     max-width: 1100px;
     margin: 0 auto;
   }
+  
+  .top-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0f172a;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+  .sync-badge {
+    background: #1e293b;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .card { background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+  .card { background: var(--card); padding: 22px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
   
   h2, h3 { margin-top: 0; color: var(--primary); }
   label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; margin-top: 10px; }
-  input, select, textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; }
+  input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; outline: none; }
+  input:focus, select:focus, textarea:focus { border-color: var(--primary); }
   
-  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
   button {
     cursor: pointer; padding: 8px 14px; border: none; border-radius: 4px; font-weight: 600; font-size: 13px; transition: 0.2s;
   }
@@ -37,18 +57,12 @@
   .btn-secondary { background: #64748b; color: #fff; }
   button:hover { opacity: 0.9; }
 
-  /* GitHub Config Box */
-  .config-box { background: #e2e8f0; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 12px; }
-  .config-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-
   /* History Table */
-  .table-box { max-height: 350px; overflow-y: auto; margin-top: 15px; border: 1px solid #cbd5e1; }
+  .table-box { max-height: 380px; overflow-y: auto; margin-top: 15px; border: 1px solid #cbd5e1; border-radius: 4px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th, td { padding: 8px; border: 1px solid #e2e8f0; text-align: left; }
-  th { background: #f8fafc; position: sticky; top: 0; }
-
-  /* Search & Filter */
-  .search-box { margin-top: 10px; }
+  th, td { padding: 8px 10px; border: 1px solid #e2e8f0; text-align: left; }
+  th { background: #f1f5f9; position: sticky; top: 0; z-index: 1; }
+  .search-box { margin-top: 12px; }
 
   /* A6 Print Layout */
   @page {
@@ -95,35 +109,17 @@
 <body>
 
 <div class="no-print">
-  <!-- GitHub Config Bar -->
-  <div class="card config-box">
-    <strong>GitHub Sync Config (data.json update directly)</strong>
-    <div class="config-grid" style="margin-top: 8px;">
-      <div>
-        <label style="margin:0;">GitHub Repo (Owner/Repo):</label>
-        <input type="text" id="ghRepo" placeholder="username/repo-name">
-      </div>
-      <div>
-        <label style="margin:0;">Branch:</label>
-        <input type="text" id="ghBranch" value="main">
-      </div>
-      <div>
-        <label style="margin:0;">Personal Access Token (PAT):</label>
-        <input type="password" id="ghToken" placeholder="ghp_xxxx">
-      </div>
-    </div>
-    <div style="margin-top:8px;">
-      <button class="btn-dark" onclick="saveGHConfig()">Save GitHub Token & Config</button>
-      <button class="btn-secondary" onclick="syncFromGitHub()">Sync from GitHub data.json</button>
-      <span id="syncStatus" style="font-weight: bold; margin-left: 10px;"></span>
-    </div>
+  <!-- Top Bar with Auto Cloud Status -->
+  <div class="top-status-bar">
+    <div><strong>SGM PAYMENT RECEIPT SYSTEM</strong></div>
+    <div>Cloud Status: <span id="syncStatus" class="sync-badge" style="color:#38bdf8;">Connecting...</span></div>
   </div>
 
   <div class="grid">
     <!-- Form Section -->
     <div class="card">
       <h3 id="formTitle">Generate Receipt</h3>
-      <form id="receiptForm" onsubmit="event.preventDefault(); handleFormSubmit();">
+      <form id="receiptForm" onsubmit="event.preventDefault();">
         <input type="hidden" id="editReceiptId" value="">
 
         <label>Date (DT):</label>
@@ -227,17 +223,20 @@
 </div>
 
 <script>
+  // ================= HARDCODED GITHUB CONFIG =================
+  const GH_REPO = 'TechIsInMyDNA/SGM-RECEIPT-GENERATOR';
+  const GH_BRANCH = 'main';
+  const GH_TOKEN = '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'; // <-- APNA GITHUB PAT TOKEN YAHAN DAALEN
+  // ==========================================================
+
   let receipts = JSON.parse(localStorage.getItem('receipt_records') || '[]');
   let ghFileSha = null;
 
   window.onload = function() {
     setDefaultDate();
-    document.getElementById('ghRepo').value = localStorage.getItem('gh_repo') || '';
-    document.getElementById('ghBranch').value = localStorage.getItem('gh_branch') || 'main';
-    document.getElementById('ghToken').value = localStorage.getItem('gh_token') || '';
-
     handleModeChange();
     renderTable();
+    syncFromGitHub();
   };
 
   function setDefaultDate() {
@@ -278,19 +277,10 @@
     }
   }
 
-  function saveGHConfig() {
-    localStorage.setItem('gh_repo', document.getElementById('ghRepo').value.trim());
-    localStorage.setItem('gh_branch', document.getElementById('ghBranch').value.trim());
-    localStorage.setItem('gh_token', document.getElementById('ghToken').value.trim());
-    alert('GitHub Configuration Saved Locally!');
-  }
-
   function getCombinedMode() {
     const mode = document.getElementById('rModeSelect').value;
     const num = document.getElementById('rModeNumber').value.trim();
-    if (mode === 'CASH') {
-      return 'CASH';
-    }
+    if (mode === 'CASH') return 'CASH';
     return num ? `${mode}: ${num}` : mode;
   }
 
@@ -346,9 +336,9 @@
     renderTable();
     pushToGitHub();
     alert('Saved successfully!');
+    resetForm();
   }
 
-  // Edit Receipt Flow
   function editRecord(id) {
     const item = receipts.find(r => r.id === id);
     if (!item) return;
@@ -363,8 +353,7 @@
     document.getElementById('rAmount').value = item.amount;
     document.getElementById('rRemarks').value = item.remarks || '';
 
-    // Switch UI to Edit Mode
-    document.getElementById('formTitle').innerText = '✏️ Edit Receipt (Editing Mode)';
+    document.getElementById('formTitle').innerText = '✏️ Edit Receipt';
     document.getElementById('normalActionButtons').style.display = 'none';
     document.getElementById('editActionButtons').style.display = 'flex';
 
@@ -464,7 +453,6 @@
     handleModeChange();
   }
 
-  // Export to Excel
   function exportToExcel() {
     if (receipts.length === 0) {
       alert('No data available to export.');
@@ -476,7 +464,6 @@
     XLSX.writeFile(wb, `Payment_Receipts_${Date.now()}.xlsx`);
   }
 
-  // JSON Local Backup & Restore
   function downloadBackup() {
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(receipts, null, 2));
     const dlAnchor = document.createElement('a');
@@ -508,24 +495,24 @@
     reader.readAsText(file);
   }
 
-  // GitHub REST API Direct data.json Commits
+  // GitHub REST API Direct Sync Functions
   async function pushToGitHub() {
-    const repo = localStorage.getItem('gh_repo');
-    const branch = localStorage.getItem('gh_branch') || 'main';
-    const token = localStorage.getItem('gh_token');
     const statusEl = document.getElementById('syncStatus');
+    if (!GH_TOKEN || GH_TOKEN === 'PASTE_YOUR_GITHUB_TOKEN_HERE') {
+      statusEl.innerText = 'Token Missing';
+      statusEl.style.color = '#dc2626';
+      return;
+    }
 
-    if (!repo || !token) return;
-
-    statusEl.innerText = 'Syncing to GitHub...';
-    statusEl.style.color = '#d97706';
+    statusEl.innerText = 'Syncing...';
+    statusEl.style.color = '#f59e0b';
 
     try {
-      const url = `https://api.github.com/repos/${repo}/contents/data.json`;
+      const url = `https://api.github.com/repos/${GH_REPO}/contents/data.json`;
       
       let sha = ghFileSha;
-      const getRes = await fetch(`${url}?ref=${branch}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const getRes = await fetch(`${url}?ref=${GH_BRANCH}`, {
+        headers: { 'Authorization': `Bearer ${GH_TOKEN}` }
       });
       if (getRes.ok) {
         const getData = await getRes.json();
@@ -538,13 +525,13 @@
       const putRes = await fetch(url, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${GH_TOKEN}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           message: `Update data.json [${new Date().toISOString()}]`,
           content: encodedContent,
-          branch: branch,
+          branch: GH_BRANCH,
           sha: sha || undefined
         })
       });
@@ -552,34 +539,31 @@
       if (putRes.ok) {
         const putData = await putRes.json();
         ghFileSha = putData.content.sha;
-        statusEl.innerText = 'Synced to GitHub data.json ✓';
-        statusEl.style.color = '#16a34a';
+        statusEl.innerText = 'Live Synced ✓';
+        statusEl.style.color = '#4ade80';
       } else {
         throw new Error('Failed to update GitHub');
       }
     } catch (e) {
       console.error(e);
-      statusEl.innerText = 'GitHub Sync Failed (Check Token/Repo)';
+      statusEl.innerText = 'Sync Failed';
       statusEl.style.color = '#dc2626';
     }
   }
 
   async function syncFromGitHub() {
-    const repo = localStorage.getItem('gh_repo');
-    const branch = localStorage.getItem('gh_branch') || 'main';
-    const token = localStorage.getItem('gh_token');
     const statusEl = document.getElementById('syncStatus');
-
-    if (!repo || !token) {
-      alert('Fill Repo and Token first.');
+    if (!GH_TOKEN || GH_TOKEN === 'PASTE_YOUR_GITHUB_TOKEN_HERE') {
+      statusEl.innerText = 'Token Missing';
+      statusEl.style.color = '#dc2626';
       return;
     }
 
-    statusEl.innerText = 'Fetching from GitHub...';
+    statusEl.innerText = 'Connecting...';
     try {
-      const url = `https://api.github.com/repos/${repo}/contents/data.json?ref=${branch}`;
+      const url = `https://api.github.com/repos/${GH_REPO}/contents/data.json?ref=${GH_BRANCH}`;
       const res = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${GH_TOKEN}` }
       });
       if (res.ok) {
         const data = await res.json();
@@ -588,13 +572,15 @@
         receipts = JSON.parse(decoded);
         localStorage.setItem('receipt_records', JSON.stringify(receipts));
         renderTable();
-        statusEl.innerText = 'Synced from GitHub ✓';
-        statusEl.style.color = '#16a34a';
+        statusEl.innerText = 'Live Synced ✓';
+        statusEl.style.color = '#4ade80';
       } else {
-        alert('File data.json not found in repository or invalid token.');
+        statusEl.innerText = 'Ready (data.json empty)';
+        statusEl.style.color = '#94a3b8';
       }
     } catch (e) {
-      alert('Error fetching from GitHub: ' + e.message);
+      statusEl.innerText = 'Offline Mode';
+      statusEl.style.color = '#dc2626';
     }
   }
 </script>
