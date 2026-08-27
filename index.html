@@ -74,7 +74,7 @@
       <span>Cloud:</span>
       <span id="syncStatus" class="sync-badge" style="color:#38bdf8;">Connecting...</span>
       <button style="padding:2px 8px; font-size:11px; background:#334155; color:#fff;" onclick="syncFromGitHub(true)">🔄 Sync Now</button>
-      <button style="padding:2px 8px; font-size:11px; background:#475569; color:#fff;" onclick="checkTokenLive()">🔍 Test Connection</button>
+      <button style="padding:2px 8px; font-size:11px; background:#0284c7; color:#fff;" onclick="changeKey()">🔑 Set/Change Token</button>
     </div>
   </div>
 
@@ -183,46 +183,39 @@
 </div>
 
 <script>
-  // ================= CLOUD SYNC CONFIG =================
   const GH_REPO = 'TechIsInMyDNA/SGM-RECEIPT-GENERATOR';
   const GH_BRANCH = 'main';
 
-  // YAHAN APNA NAYA VALID TOKEN DALEN
-  const TOKEN_VAL = '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'; 
+  let receipts = JSON.parse(localStorage.getItem('receipt_records') || '[]');
 
   function getAuthToken() {
-    return TOKEN_VAL.trim();
+    return localStorage.getItem('sgm_gh_token') || '';
   }
-  // ====================================================
 
-  let receipts = JSON.parse(localStorage.getItem('receipt_records') || '[]');
+  function changeKey() {
+    const current = getAuthToken();
+    const token = prompt("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", current);
+    if (token !== null && token.trim() !== '') {
+      localStorage.setItem('sgm_gh_token', token.trim());
+      syncFromGitHub(true);
+    }
+  }
 
   window.onload = function() {
     setDefaultDate();
     handleModeChange();
     renderTable();
-    syncFromGitHub(false);
+
+    if (!getAuthToken()) {
+      changeKey();
+    } else {
+      syncFromGitHub(false);
+    }
 
     setInterval(() => {
       syncFromGitHub(false);
     }, 15000);
   };
-
-  async function checkTokenLive() {
-    const token = getAuthToken();
-    try {
-      const res = await fetch(`https://api.github.com/repos/${GH_REPO}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        alert('✅ Connection Successful! GitHub is properly connected.');
-      } else {
-        alert(`❌ Connection Failed (${res.status} ${res.statusText}). Token is either revoked, expired, or lacks repo permissions.`);
-      }
-    } catch(e) {
-      alert('❌ Network error while connecting to GitHub.');
-    }
-  }
 
   function setDefaultDate() {
     const today = new Date();
@@ -477,6 +470,8 @@
           renderTable();
           await pushToGitHub();
           alert('Backup restored & synced to cloud!');
+        } else {
+          alert('Invalid backup file format.');
         }
       } catch (err) {
         alert('Error parsing JSON file.');
@@ -485,10 +480,11 @@
     reader.readAsText(file);
   }
 
-  // ================= REAL-TIME MULTI-DEVICE SYNC =================
+  // ================= REAL-TIME CLOUD SYNC =================
   async function pushToGitHub() {
     const token = getAuthToken();
     const statusEl = document.getElementById('syncStatus');
+    if (!token) return;
 
     statusEl.innerText = 'Syncing...';
     statusEl.style.color = '#f59e0b';
@@ -532,13 +528,10 @@
         statusEl.innerText = 'Live Synced ✓';
         statusEl.style.color = '#4ade80';
       } else {
-        const errJson = await putRes.json();
         statusEl.innerText = 'Sync Error';
         statusEl.style.color = '#dc2626';
-        console.error('Push error:', errJson);
       }
     } catch (e) {
-      console.error(e);
       statusEl.innerText = 'Sync Error';
       statusEl.style.color = '#dc2626';
     }
@@ -547,6 +540,11 @@
   async function syncFromGitHub(manual = false) {
     const token = getAuthToken();
     const statusEl = document.getElementById('syncStatus');
+    if (!token) {
+      statusEl.innerText = 'Token Needed';
+      statusEl.style.color = '#dc2626';
+      return;
+    }
 
     if (manual) {
       statusEl.innerText = 'Fetching...';
@@ -577,10 +575,9 @@
           if (manual) alert('Latest cloud data loaded successfully!');
         }
       } else {
-        const errRes = await res.json();
         statusEl.innerText = 'Offline Mode';
         statusEl.style.color = '#dc2626';
-        if (manual) alert(`GitHub Sync Failed: ${errRes.message || res.statusText}`);
+        if (manual) alert('Sync failed. Please check token permissions.');
       }
     } catch (e) {
       statusEl.innerText = 'Offline Mode';
