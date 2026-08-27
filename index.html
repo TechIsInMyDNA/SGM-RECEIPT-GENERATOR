@@ -64,39 +64,88 @@
   th { background: #f1f5f9; position: sticky; top: 0; z-index: 1; }
   .search-box { margin-top: 12px; }
 
-  /* A6 Print Layout */
+  /* ================= DHASU A6 PRINT LAYOUT ================= */
   @page {
     size: A6 portrait;
-    margin: 8mm;
+    margin: 5mm;
   }
 
   .print-container {
     display: none;
     width: 100%;
     height: 100%;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 13px;
-    line-height: 1.7;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     color: #000;
   }
 
+  .receipt-outer {
+    border: 2px solid #000;
+    padding: 3px;
+    height: calc(148mm - 12mm);
+    box-sizing: border-box;
+  }
+
   .receipt-box {
-    border: 1.5px solid #000;
-    padding: 12px;
-    min-height: 130mm;
+    border: 1px dashed #333;
+    padding: 12px 14px;
+    height: 100%;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
   }
 
-  .row-line { margin-bottom: 6px; }
-  .bold { font-weight: bold; }
+  .receipt-header-title {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    border-bottom: 1.5px solid #000;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .row-line {
+    font-size: 12.5px;
+    line-height: 1.5;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: baseline;
+  }
+
+  .bold { font-weight: 700; white-space: nowrap; }
+  .val { margin-left: 6px; word-break: break-word; }
+  .amount-highlight {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+  }
+
+  .notice-line {
+    margin-top: 10px;
+    padding-top: 6px;
+    border-top: 1px dashed #888;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.2px;
+  }
+
   .footer-sign {
     display: flex;
     justify-content: space-between;
-    margin-top: 35px;
-    padding: 0 20px;
-    font-weight: bold;
+    margin-top: 30px;
+    padding: 0 15px;
+    font-weight: 800;
+    font-size: 12px;
+  }
+
+  .sign-box {
+    text-align: center;
+    width: 90px;
+    border-top: 1.2px solid #000;
+    padding-top: 4px;
   }
 
   @media print {
@@ -148,7 +197,7 @@
           <input type="text" id="rModeNumber" placeholder="Enter UPI Ref No / TXN ID">
         </div>
 
-        <label>Amount (AMOUNT: S):</label>
+        <label>Amount (AMOUNT: ₹):</label>
         <input type="number" step="any" id="rAmount" required placeholder="e.g. 5000">
 
         <label>Remarks (REMARKS):</label>
@@ -190,7 +239,7 @@
               <th>Receipt No</th>
               <th>From</th>
               <th>Mode / Details</th>
-              <th>Amount</th>
+              <th>Amount (₹)</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -201,23 +250,27 @@
   </div>
 </div>
 
-<!-- Exact A6 Printable Template -->
+<!-- ================= EXACT DHASU A6 PRINT LAYOUT ================= -->
 <div class="print-container">
-  <div class="receipt-box">
-    <div>
-      <div class="row-line"><span class="bold">DT: - </span><span id="pDate"></span></div>
-      <div class="row-line" style="margin-top: 8px;"><span class="bold">HEREBY, ARE THE DETAILS OF PAYMENT INSTRUMENT RECEIVED: -</span></div>
-      <div class="row-line"><span class="bold">CHEQUE NO/UPI/NEFT/RTGS/CASH: - </span><span id="pMode"></span></div>
-      <div class="row-line"><span class="bold">AMOUNT: - S </span><span id="pAmount"></span></div>
-      <div class="row-line"><span class="bold">FROM: - </span><span id="pFrom"></span></div>
-      <div class="row-line"><span class="bold">RECEIPT NO: - </span><span id="pNo"></span></div>
-      <div class="row-line"><span class="bold">REMARKS: - </span><span id="pRemarks"></span></div>
-      <div class="row-line" style="margin-top: 12px;"><span class="bold">PLEASE, ACKNOWLEDGE THIS AS RECEIVED RECEIPT.</span></div>
-    </div>
+  <div class="receipt-outer">
+    <div class="receipt-box">
+      <div>
+        <div class="receipt-header-title">Payment Acknowledgment</div>
+        
+        <div class="row-line"><span class="bold">DT: - </span><span class="val" id="pDate"></span></div>
+        <div class="row-line" style="margin: 7px 0 5px 0;"><span class="bold" style="font-size: 11.5px;">HEREBY, ARE THE DETAILS OF PAYMENT INSTRUMENT RECEIVED: -</span></div>
+        <div class="row-line"><span class="bold">CHEQUE NO/UPI/NEFT/RTGS/CASH: - </span><span class="val" id="pMode"></span></div>
+        <div class="row-line"><span class="bold">AMOUNT: - </span><span class="val amount-highlight">₹ <span id="pAmount"></span></span></div>
+        <div class="row-line"><span class="bold">FROM: - </span><span class="val" id="pFrom"></span></div>
+        <div class="row-line"><span class="bold">RECEIPT NO: - </span><span class="val" id="pNo"></span></div>
+        <div class="row-line"><span class="bold">REMARKS: - </span><span class="val" id="pRemarks"></span></div>
+        <div class="notice-line">PLEASE, ACKNOWLEDGE THIS AS RECEIVED RECEIPT.</div>
+      </div>
 
-    <div class="footer-sign">
-      <span>SIGN</span>
-      <span>STAMP</span>
+      <div class="footer-sign">
+        <div class="sign-box">SIGN</div>
+        <div class="sign-box">STAMP</div>
+      </div>
     </div>
   </div>
 </div>
@@ -226,7 +279,7 @@
   // ================= HARDCODED GITHUB CONFIG =================
   const GH_REPO = 'TechIsInMyDNA/SGM-RECEIPT-GENERATOR';
   const GH_BRANCH = 'main';
-  const GH_TOKEN = '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'; // <-- APNA GITHUB PAT TOKEN YAHAN DAALEN
+  const GH_TOKEN = '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'; // <-- APNA TOKEN YAHAN RAKHEN
   // ==========================================================
 
   let receipts = JSON.parse(localStorage.getItem('receipt_records') || '[]');
@@ -284,6 +337,12 @@
     return num ? `${mode}: ${num}` : mode;
   }
 
+  function formatIndianCurrency(numStr) {
+    if (!numStr) return '0.00';
+    let val = parseFloat(numStr);
+    return isNaN(val) ? numStr : val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
   function getFormData() {
     return {
       id: Number(document.getElementById('editReceiptId').value) || Date.now(),
@@ -304,8 +363,8 @@
     document.getElementById('pNo').innerText = data.receiptNo;
     document.getElementById('pFrom').innerText = data.from;
     document.getElementById('pMode').innerText = data.mode;
-    document.getElementById('pAmount').innerText = data.amount;
-    document.getElementById('pRemarks').innerText = data.remarks;
+    document.getElementById('pAmount').innerText = formatIndianCurrency(data.amount);
+    document.getElementById('pRemarks').innerText = data.remarks || '-';
   }
 
   function printReceipt() {
@@ -433,7 +492,7 @@
         <td>${r.receiptNo}</td>
         <td>${r.from}</td>
         <td>${r.mode}</td>
-        <td>${r.amount}</td>
+        <td><strong>₹ ${formatIndianCurrency(r.amount)}</strong></td>
         <td>
           <div style="display:flex; gap:4px;">
             <button style="padding:3px 6px; font-size:11px;" class="btn-primary" onclick="reprint(${r.id})" title="Print">🖨️</button>
@@ -495,7 +554,6 @@
     reader.readAsText(file);
   }
 
-  // GitHub REST API Direct Sync Functions
   async function pushToGitHub() {
     const statusEl = document.getElementById('syncStatus');
     if (!GH_TOKEN || GH_TOKEN === 'PASTE_YOUR_GITHUB_TOKEN_HERE') {
