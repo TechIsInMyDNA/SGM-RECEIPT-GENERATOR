@@ -31,6 +31,8 @@
   }
   .btn-primary { background: #2563eb; color: #fff; }
   .btn-success { background: #16a34a; color: #fff; }
+  .btn-warning { background: #d97706; color: #fff; }
+  .btn-danger { background: #dc2626; color: #fff; }
   .btn-dark { background: #0f172a; color: #fff; }
   .btn-secondary { background: #64748b; color: #fff; }
   button:hover { opacity: 0.9; }
@@ -40,10 +42,13 @@
   .config-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
   /* History Table */
-  .table-box { max-height: 250px; overflow-y: auto; margin-top: 15px; border: 1px solid #cbd5e1; }
+  .table-box { max-height: 350px; overflow-y: auto; margin-top: 15px; border: 1px solid #cbd5e1; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
   th, td { padding: 8px; border: 1px solid #e2e8f0; text-align: left; }
   th { background: #f8fafc; position: sticky; top: 0; }
+
+  /* Search & Filter */
+  .search-box { margin-top: 10px; }
 
   /* A6 Print Layout */
   @page {
@@ -117,8 +122,10 @@
   <div class="grid">
     <!-- Form Section -->
     <div class="card">
-      <h3>Generate Receipt</h3>
-      <form id="receiptForm" onsubmit="event.preventDefault(); printReceipt();">
+      <h3 id="formTitle">Generate Receipt</h3>
+      <form id="receiptForm" onsubmit="event.preventDefault(); handleFormSubmit();">
+        <input type="hidden" id="editReceiptId" value="">
+
         <label>Date (DT):</label>
         <input type="text" id="rDate" required>
 
@@ -151,10 +158,16 @@
         <label>Remarks (REMARKS):</label>
         <textarea id="rRemarks" rows="2" placeholder="e.g. On account / Clear balance"></textarea>
 
-        <div class="btn-row">
-          <button type="submit" class="btn-primary">🖨️ Print / Save PDF (A6)</button>
+        <div class="btn-row" id="normalActionButtons">
+          <button type="button" class="btn-primary" onclick="printReceipt()">🖨️ Print / Save PDF (A6)</button>
           <button type="button" class="btn-success" onclick="saveRecordOnly()">💾 Save Only</button>
           <button type="button" class="btn-secondary" onclick="resetForm()">Clear Form</button>
+        </div>
+
+        <div class="btn-row" id="editActionButtons" style="display:none;">
+          <button type="button" class="btn-warning" onclick="updateRecord(false)">💾 Update Record</button>
+          <button type="button" class="btn-primary" onclick="updateRecord(true)">🖨️ Update & Print</button>
+          <button type="button" class="btn-secondary" onclick="cancelEdit()">Cancel Edit</button>
         </div>
       </form>
     </div>
@@ -164,9 +177,13 @@
       <h3>Records & Backups</h3>
       <div class="btn-row" style="margin-top: 0;">
         <button class="btn-success" onclick="exportToExcel()">📊 Export to Excel</button>
-        <button class="btn-dark" onclick="downloadBackup()">📥 Download JSON Backup</button>
+        <button class="btn-dark" onclick="downloadBackup()">📥 Download JSON</button>
         <button class="btn-secondary" onclick="document.getElementById('restoreInput').click()">📤 Restore JSON</button>
         <input type="file" id="restoreInput" accept=".json" style="display:none;" onchange="restoreBackup(event)">
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="searchBar" placeholder="🔍 Search by Name, Receipt No, or Mode..." oninput="renderTable()">
       </div>
 
       <div class="table-box">
@@ -178,7 +195,7 @@
               <th>From</th>
               <th>Mode / Details</th>
               <th>Amount</th>
-              <th>Action</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="recordsBody"></tbody>
@@ -214,12 +231,7 @@
   let ghFileSha = null;
 
   window.onload = function() {
-    const today = new Date();
-    const d = String(today.getDate()).padStart(2, '0');
-    const m = String(today.getMonth() + 1).padStart(2, '0');
-    const y = today.getFullYear();
-    document.getElementById('rDate').value = `${d}-${m}-${y}`;
-
+    setDefaultDate();
     document.getElementById('ghRepo').value = localStorage.getItem('gh_repo') || '';
     document.getElementById('ghBranch').value = localStorage.getItem('gh_branch') || 'main';
     document.getElementById('ghToken').value = localStorage.getItem('gh_token') || '';
@@ -227,6 +239,14 @@
     handleModeChange();
     renderTable();
   };
+
+  function setDefaultDate() {
+    const today = new Date();
+    const d = String(today.getDate()).padStart(2, '0');
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const y = today.getFullYear();
+    document.getElementById('rDate').value = `${d}-${m}-${y}`;
+  }
 
   function handleModeChange() {
     const mode = document.getElementById('rModeSelect').value;
@@ -276,7 +296,7 @@
 
   function getFormData() {
     return {
-      id: Date.now(),
+      id: Number(document.getElementById('editReceiptId').value) || Date.now(),
       date: document.getElementById('rDate').value,
       receiptNo: document.getElementById('rNo').value,
       from: document.getElementById('rFrom').value,
@@ -301,14 +321,13 @@
   function printReceipt() {
     const data = getFormData();
     if (!data.from || !data.amount) {
-      alert('Please fill required fields!');
+      alert('Please fill required fields (From, Amount)!');
       return;
     }
     receipts.unshift(data);
     localStorage.setItem('receipt_records', JSON.stringify(receipts));
     renderTable();
     populatePrintLayout(data);
-    
     pushToGitHub();
 
     setTimeout(() => {
@@ -329,6 +348,65 @@
     alert('Saved successfully!');
   }
 
+  // Edit Receipt Flow
+  function editRecord(id) {
+    const item = receipts.find(r => r.id === id);
+    if (!item) return;
+
+    document.getElementById('editReceiptId').value = item.id;
+    document.getElementById('rDate').value = item.date;
+    document.getElementById('rNo').value = item.receiptNo;
+    document.getElementById('rFrom').value = item.from;
+    document.getElementById('rModeSelect').value = item.modeSelect || (item.mode.includes(':') ? item.mode.split(':')[0].trim() : (item.mode === 'CASH' ? 'CASH' : 'OTHER'));
+    handleModeChange();
+    document.getElementById('rModeNumber').value = item.modeNumber || (item.mode.includes(':') ? item.mode.split(':')[1].trim() : '');
+    document.getElementById('rAmount').value = item.amount;
+    document.getElementById('rRemarks').value = item.remarks || '';
+
+    // Switch UI to Edit Mode
+    document.getElementById('formTitle').innerText = '✏️ Edit Receipt (Editing Mode)';
+    document.getElementById('normalActionButtons').style.display = 'none';
+    document.getElementById('editActionButtons').style.display = 'flex';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function updateRecord(shouldPrint) {
+    const id = Number(document.getElementById('editReceiptId').value);
+    const index = receipts.findIndex(r => r.id === id);
+    if (index === -1) return;
+
+    const data = getFormData();
+    if (!data.from || !data.amount) {
+      alert('Please fill required fields (From, Amount)!');
+      return;
+    }
+
+    receipts[index] = data;
+    localStorage.setItem('receipt_records', JSON.stringify(receipts));
+    renderTable();
+    pushToGitHub();
+
+    if (shouldPrint) {
+      populatePrintLayout(data);
+      setTimeout(() => {
+        window.print();
+      }, 200);
+    } else {
+      alert('Receipt updated successfully!');
+    }
+
+    cancelEdit();
+  }
+
+  function cancelEdit() {
+    document.getElementById('editReceiptId').value = '';
+    document.getElementById('formTitle').innerText = 'Generate Receipt';
+    document.getElementById('normalActionButtons').style.display = 'flex';
+    document.getElementById('editActionButtons').style.display = 'none';
+    resetForm();
+  }
+
   function reprint(id) {
     const item = receipts.find(r => r.id === id);
     if (!item) return;
@@ -337,7 +415,10 @@
   }
 
   function deleteRecord(id) {
-    if (!confirm('Are you sure you want to delete this record?')) return;
+    const item = receipts.find(r => r.id === id);
+    const confirmName = item ? item.from : 'this record';
+    if (!confirm(`Are you sure you want to delete receipt for "${confirmName}"?`)) return;
+    
     receipts = receipts.filter(r => r.id !== id);
     localStorage.setItem('receipt_records', JSON.stringify(receipts));
     renderTable();
@@ -346,8 +427,17 @@
 
   function renderTable() {
     const tbody = document.getElementById('recordsBody');
+    const query = (document.getElementById('searchBar') ? document.getElementById('searchBar').value : '').toLowerCase();
     tbody.innerHTML = '';
-    receipts.forEach(r => {
+
+    const filtered = receipts.filter(r => 
+      (r.from && r.from.toLowerCase().includes(query)) ||
+      (r.receiptNo && r.receiptNo.toLowerCase().includes(query)) ||
+      (r.mode && r.mode.toLowerCase().includes(query)) ||
+      (r.date && r.date.toLowerCase().includes(query))
+    );
+
+    filtered.forEach(r => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${r.date}</td>
@@ -356,8 +446,11 @@
         <td>${r.mode}</td>
         <td>${r.amount}</td>
         <td>
-          <button style="padding:2px 6px; font-size:11px;" class="btn-primary" onclick="reprint(${r.id})">Print</button>
-          <button style="padding:2px 6px; font-size:11px; background:#dc2626; color:#fff;" onclick="deleteRecord(${r.id})">Del</button>
+          <div style="display:flex; gap:4px;">
+            <button style="padding:3px 6px; font-size:11px;" class="btn-primary" onclick="reprint(${r.id})" title="Print">🖨️</button>
+            <button style="padding:3px 6px; font-size:11px;" class="btn-warning" onclick="editRecord(${r.id})" title="Edit">✏️</button>
+            <button style="padding:3px 6px; font-size:11px;" class="btn-danger" onclick="deleteRecord(${r.id})" title="Delete">🗑️</button>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
@@ -366,11 +459,7 @@
 
   function resetForm() {
     document.getElementById('receiptForm').reset();
-    const today = new Date();
-    const d = String(today.getDate()).padStart(2, '0');
-    const m = String(today.getMonth() + 1).padStart(2, '0');
-    const y = today.getFullYear();
-    document.getElementById('rDate').value = `${d}-${m}-${y}`;
+    setDefaultDate();
     document.getElementById('rNo').value = 'FY25-26/';
     handleModeChange();
   }
@@ -429,7 +518,7 @@
     if (!repo || !token) return;
 
     statusEl.innerText = 'Syncing to GitHub...';
-    statusEl.style.color = '#eab308';
+    statusEl.style.color = '#d97706';
 
     try {
       const url = `https://api.github.com/repos/${repo}/contents/data.json`;
