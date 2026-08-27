@@ -271,9 +271,10 @@
     renderTable();
     syncFromGitHub(false);
 
+    // Continuous auto-sync every 10 seconds across devices
     setInterval(() => {
       syncFromGitHub(false);
-    }, 15000);
+    }, 10000);
   };
 
   function setDefaultDate() {
@@ -379,7 +380,7 @@
     localStorage.setItem('receipt_records', JSON.stringify(receipts));
     renderTable();
     await pushToGitHub();
-    alert('Saved successfully & synced to cloud!');
+    alert('Saved successfully & synced to GitHub!');
     resetForm();
   }
 
@@ -585,12 +586,15 @@
         statusEl.innerText = 'Live Synced ✓';
         statusEl.style.color = '#4ade80';
       } else {
-        throw new Error('Push failed');
+        const errJson = await putRes.json();
+        console.error('Push error:', errJson);
+        statusEl.innerText = 'Sync Error';
+        statusEl.style.color = '#dc2626';
       }
     } catch (e) {
       console.error(e);
-      statusEl.innerText = 'Live Synced ✓';
-      statusEl.style.color = '#4ade80';
+      statusEl.innerText = 'Sync Error';
+      statusEl.style.color = '#dc2626';
     }
   }
 
@@ -629,22 +633,27 @@
         }
 
         if (Array.isArray(cloudReceipts)) {
-          if (cloudReceipts.length > 0) {
-            receipts = cloudReceipts;
-            localStorage.setItem('receipt_records', JSON.stringify(receipts));
-            renderTable();
-          }
+          receipts = cloudReceipts;
+          localStorage.setItem('receipt_records', JSON.stringify(receipts));
+          renderTable();
           statusEl.innerText = 'Live Synced ✓';
           statusEl.style.color = '#4ade80';
-          if (manual) alert('Latest cloud data loaded successfully!');
+          if (manual) alert(`Success: ${cloudReceipts.length} record(s) loaded from GitHub.`);
         }
-      } else {
-        statusEl.innerText = 'Live Synced ✓';
+      } else if (res.status === 404) {
+        statusEl.innerText = 'Live Synced (Empty)';
         statusEl.style.color = '#4ade80';
+        if (manual) alert('data.json is empty on cloud.');
+      } else {
+        const err = await res.json();
+        statusEl.innerText = 'Offline Mode';
+        statusEl.style.color = '#dc2626';
+        if (manual) alert(`Sync Failed: ${err.message || res.statusText}`);
       }
     } catch (e) {
-      statusEl.innerText = 'Live Synced ✓';
-      statusEl.style.color = '#4ade80';
+      statusEl.innerText = 'Offline Mode';
+      statusEl.style.color = '#dc2626';
+      if (manual) alert('Network error connecting to GitHub API.');
     }
   }
 </script>
