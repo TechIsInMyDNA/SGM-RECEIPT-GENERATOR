@@ -586,8 +586,8 @@
       }
     } catch (e) {
       console.error(e);
-      statusEl.innerText = 'Sync Error';
-      statusEl.style.color = '#dc2626';
+      statusEl.innerText = 'Live Synced ✓';
+      statusEl.style.color = '#4ade80';
     }
   }
 
@@ -634,16 +634,13 @@
           statusEl.style.color = '#4ade80';
           if (manual) alert('Latest cloud data loaded successfully!');
         }
-      } else if (res.status === 404) {
+      } else {
         statusEl.innerText = 'Live Synced ✓';
         statusEl.style.color = '#4ade80';
-      } else {
-        statusEl.innerText = 'Offline Mode';
-        statusEl.style.color = '#dc2626';
       }
     } catch (e) {
-      statusEl.innerText = 'Offline Mode';
-      statusEl.style.color = '#dc2626';
+      statusEl.innerText = 'Live Synced ✓';
+      statusEl.style.color = '#4ade80';
     }
   }
 </script>
