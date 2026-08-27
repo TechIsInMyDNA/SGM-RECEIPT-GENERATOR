@@ -14,139 +14,49 @@
   * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
   body { margin: 0; padding: 20px; background: var(--bg); color: #1e293b; }
 
-  .no-print {
-    max-width: 1100px;
-    margin: 0 auto;
-  }
+  .no-print { max-width: 1100px; margin: 0 auto; }
   
   .top-status-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #0f172a;
-    color: #fff;
-    padding: 10px 18px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 13px;
+    display: flex; justify-content: space-between; align-items: center;
+    background: #0f172a; color: #fff; padding: 10px 18px;
+    border-radius: 8px; margin-bottom: 20px; font-size: 13px;
   }
-  .sync-badge {
-    background: #1e293b;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-weight: 600;
-  }
+  .sync-badge { background: #1e293b; padding: 4px 10px; border-radius: 4px; font-weight: 600; }
 
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  .card { background: var(--card); padding: 22px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -2px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+  .card { background: var(--card); padding: 22px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
   
   h2, h3 { margin-top: 0; color: var(--primary); }
   label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; margin-top: 10px; }
   input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; outline: none; }
-  input:focus, select:focus, textarea:focus { border-color: var(--primary); }
   
   .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
-  button {
-    cursor: pointer; padding: 8px 14px; border: none; border-radius: 4px; font-weight: 600; font-size: 13px; transition: 0.2s;
-  }
+  button { cursor: pointer; padding: 8px 14px; border: none; border-radius: 4px; font-weight: 600; font-size: 13px; }
   .btn-primary { background: #2563eb; color: #fff; }
   .btn-success { background: #16a34a; color: #fff; }
   .btn-warning { background: #d97706; color: #fff; }
   .btn-danger { background: #dc2626; color: #fff; }
   .btn-dark { background: #0f172a; color: #fff; }
   .btn-secondary { background: #64748b; color: #fff; }
-  button:hover { opacity: 0.9; }
 
-  /* History Table */
   .table-box { max-height: 380px; overflow-y: auto; margin-top: 15px; border: 1px solid #cbd5e1; border-radius: 4px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; }
   th, td { padding: 8px 10px; border: 1px solid #e2e8f0; text-align: left; }
   th { background: #f1f5f9; position: sticky; top: 0; z-index: 1; }
-  .search-box { margin-top: 12px; }
 
-  /* ================= DHASU A6 PRINT LAYOUT ================= */
-  @page {
-    size: A6 portrait;
-    margin: 5mm;
-  }
-
-  .print-container {
-    display: none;
-    width: 100%;
-    height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    color: #000;
-  }
-
-  .receipt-outer {
-    border: 2px solid #000;
-    padding: 3px;
-    height: calc(148mm - 12mm);
-    box-sizing: border-box;
-  }
-
-  .receipt-box {
-    border: 1px dashed #333;
-    padding: 12px 14px;
-    height: 100%;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .receipt-header-title {
-    text-align: center;
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    border-bottom: 1.5px solid #000;
-    padding-bottom: 5px;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-  }
-
-  .row-line {
-    font-size: 12.5px;
-    line-height: 1.5;
-    margin-bottom: 6px;
-    display: flex;
-    align-items: baseline;
-  }
-
+  /* A6 Print Layout */
+  @page { size: A6 portrait; margin: 5mm; }
+  .print-container { display: none; width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #000; }
+  .receipt-outer { border: 2px solid #000; padding: 3px; height: calc(148mm - 12mm); box-sizing: border-box; }
+  .receipt-box { border: 1px dashed #333; padding: 12px 14px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+  .receipt-header-title { text-align: center; font-size: 14px; font-weight: 800; border-bottom: 1.5px solid #000; padding-bottom: 5px; margin-bottom: 10px; text-transform: uppercase; }
+  .row-line { font-size: 12.5px; line-height: 1.5; margin-bottom: 6px; display: flex; align-items: baseline; }
   .bold { font-weight: 700; white-space: nowrap; }
   .val { margin-left: 6px; word-break: break-word; }
-  .amount-highlight {
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: 0.3px;
-  }
-
-  .notice-line {
-    margin-top: 10px;
-    padding-top: 6px;
-    border-top: 1px dashed #888;
-    font-size: 11px;
-    font-weight: 700;
-    text-align: center;
-    letter-spacing: 0.2px;
-  }
-
-  .footer-sign {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 30px;
-    padding: 0 15px;
-    font-weight: 800;
-    font-size: 12px;
-  }
-
-  .sign-box {
-    text-align: center;
-    width: 90px;
-    border-top: 1.2px solid #000;
-    padding-top: 4px;
-  }
+  .amount-highlight { font-size: 14px; font-weight: 800; }
+  .notice-line { margin-top: 10px; padding-top: 6px; border-top: 1px dashed #888; font-size: 11px; font-weight: 700; text-align: center; }
+  .footer-sign { display: flex; justify-content: space-between; margin-top: 30px; padding: 0 15px; font-weight: 800; font-size: 12px; }
+  .sign-box { text-align: center; width: 90px; border-top: 1.2px solid #000; padding-top: 4px; }
 
   @media print {
     body { background: #fff; padding: 0; }
@@ -158,18 +68,17 @@
 <body>
 
 <div class="no-print">
-  <!-- Top Bar with Auto Cloud Status -->
   <div class="top-status-bar">
     <div><strong>SGM PAYMENT RECEIPT SYSTEM</strong></div>
     <div style="display:flex; align-items:center; gap:8px;">
       <span>Cloud:</span>
       <span id="syncStatus" class="sync-badge" style="color:#38bdf8;">Connecting...</span>
       <button style="padding:2px 8px; font-size:11px; background:#334155; color:#fff;" onclick="syncFromGitHub(true)">🔄 Sync Now</button>
+      <button style="padding:2px 8px; font-size:11px; background:#475569; color:#fff;" onclick="checkTokenLive()">🔍 Test Connection</button>
     </div>
   </div>
 
   <div class="grid">
-    <!-- Form Section -->
     <div class="card">
       <h3 id="formTitle">Generate Receipt</h3>
       <form id="receiptForm" onsubmit="event.preventDefault();">
@@ -184,7 +93,6 @@
         <label>Received From (FROM):</label>
         <input type="text" id="rFrom" required placeholder="Name / Firm Name">
 
-        <!-- Payment Mode Dropdown -->
         <label>Payment Mode:</label>
         <select id="rModeSelect" onchange="handleModeChange()">
           <option value="UPI">UPI</option>
@@ -195,7 +103,6 @@
           <option value="OTHER">OTHER</option>
         </select>
 
-        <!-- Dynamic Reference Number Field -->
         <div id="modeNumberContainer">
           <label id="modeNumberLabel">UPI Transaction ID / Ref No:</label>
           <input type="text" id="rModeNumber" placeholder="Enter UPI Ref No / TXN ID">
@@ -221,7 +128,6 @@
       </form>
     </div>
 
-    <!-- Data Management Section -->
     <div class="card">
       <h3>Records & Backups</h3>
       <div class="btn-row" style="margin-top: 0;">
@@ -231,7 +137,7 @@
         <input type="file" id="restoreInput" accept=".json" style="display:none;" onchange="restoreBackup(event)">
       </div>
 
-      <div class="search-box">
+      <div style="margin-top: 12px;">
         <input type="text" id="searchBar" placeholder="🔍 Search by Name, Receipt No, or Mode..." oninput="renderTable()">
       </div>
 
@@ -254,13 +160,11 @@
   </div>
 </div>
 
-<!-- Exact A6 Printable Template -->
 <div class="print-container">
   <div class="receipt-outer">
     <div class="receipt-box">
       <div>
         <div class="receipt-header-title">Payment Acknowledgment</div>
-        
         <div class="row-line"><span class="bold">DT: - </span><span class="val" id="pDate"></span></div>
         <div class="row-line" style="margin: 7px 0 5px 0;"><span class="bold" style="font-size: 11.5px;">HEREBY, ARE THE DETAILS OF PAYMENT INSTRUMENT RECEIVED: -</span></div>
         <div class="row-line"><span class="bold">CHEQUE NO/UPI/NEFT/RTGS/CASH: - </span><span class="val" id="pMode"></span></div>
@@ -270,7 +174,6 @@
         <div class="row-line"><span class="bold">REMARKS: - </span><span class="val" id="pRemarks"></span></div>
         <div class="notice-line">PLEASE, ACKNOWLEDGE THIS AS RECEIVED RECEIPT.</div>
       </div>
-
       <div class="footer-sign">
         <div class="sign-box">SIGN</div>
         <div class="sign-box">STAMP</div>
@@ -280,18 +183,17 @@
 </div>
 
 <script>
-  // ================= PRE-CONFIGURED BYPASS TOKEN =================
+  // ================= CLOUD SYNC CONFIG =================
   const GH_REPO = 'TechIsInMyDNA/SGM-RECEIPT-GENERATOR';
   const GH_BRANCH = 'main';
 
-  const _P1 = 'ghp_';
-  const _P2 = '6B0Kye1BD8j1okrv';
-  const _P3 = 'FGJRV6Mx6jScrr3oCq1i';
+  // YAHAN APNA NAYA VALID TOKEN DALEN
+  const TOKEN_VAL = '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'; 
 
   function getAuthToken() {
-    return `${_P1}${_P2}${_P3}`;
+    return TOKEN_VAL.trim();
   }
-  // ===============================================================
+  // ====================================================
 
   let receipts = JSON.parse(localStorage.getItem('receipt_records') || '[]');
 
@@ -301,11 +203,26 @@
     renderTable();
     syncFromGitHub(false);
 
-    // Continuous auto-sync every 15 seconds
     setInterval(() => {
       syncFromGitHub(false);
     }, 15000);
   };
+
+  async function checkTokenLive() {
+    const token = getAuthToken();
+    try {
+      const res = await fetch(`https://api.github.com/repos/${GH_REPO}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        alert('✅ Connection Successful! GitHub is properly connected.');
+      } else {
+        alert(`❌ Connection Failed (${res.status} ${res.statusText}). Token is either revoked, expired, or lacks repo permissions.`);
+      }
+    } catch(e) {
+      alert('❌ Network error while connecting to GitHub.');
+    }
+  }
 
   function setDefaultDate() {
     const today = new Date();
@@ -560,8 +477,6 @@
           renderTable();
           await pushToGitHub();
           alert('Backup restored & synced to cloud!');
-        } else {
-          alert('Invalid backup file format.');
         }
       } catch (err) {
         alert('Error parsing JSON file.');
@@ -617,7 +532,10 @@
         statusEl.innerText = 'Live Synced ✓';
         statusEl.style.color = '#4ade80';
       } else {
-        throw new Error('Push failed');
+        const errJson = await putRes.json();
+        statusEl.innerText = 'Sync Error';
+        statusEl.style.color = '#dc2626';
+        console.error('Push error:', errJson);
       }
     } catch (e) {
       console.error(e);
@@ -659,8 +577,10 @@
           if (manual) alert('Latest cloud data loaded successfully!');
         }
       } else {
-        statusEl.innerText = 'Ready (data.json empty)';
-        statusEl.style.color = '#94a3b8';
+        const errRes = await res.json();
+        statusEl.innerText = 'Offline Mode';
+        statusEl.style.color = '#dc2626';
+        if (manual) alert(`GitHub Sync Failed: ${errRes.message || res.statusText}`);
       }
     } catch (e) {
       statusEl.innerText = 'Offline Mode';
