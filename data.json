@@ -1,17 +1,5 @@
 [
   {
-    "id": 1787893101601,
-    "date": "28-08-2026",
-    "receiptNo": "FY26-27/2",
-    "from": "DIPAK JAYANT FUNDE",
-    "modeSelect": "UPI",
-    "modeNumber": "624050230381",
-    "mode": "UPI: 624050230381",
-    "amount": "3400",
-    "remarks": "",
-    "timestamp": "2026-08-28T04:58:21.601Z"
-  },
-  {
     "id": 1787841860483,
     "date": "02/04/2026",
     "receiptNo": "FY26-27/1",
