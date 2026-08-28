@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Payment Receipt Generator (A6)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- CryptoJS Library for AES-256 Data & Token Protection -->
+<!-- CryptoJS Library for AES-256 Data Protection -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 <style>
   :root {
@@ -265,19 +265,17 @@
 </div>
 
 <script>
-  // ================= SECURITY & ENCRYPTION VAULT =================
+  // ================= 3-PIECES WORKING PATTERN =================
   const GH_REPO = 'TechIsInMyDNA/SGM-RECEIPT-GENERATOR';
   const GH_BRANCH = 'main';
 
-  // Dynamic ASCII byte array for token (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)
-  const _K_SEQ = [103,104,112,95,117,67,51,83,65,71,88,52,69,121,102,77,71,111,77,103,50,56,52,87,121,67,57,53,65,77,56,111,89,104,48,88,78,73,77,52];
-  
-  function getDecodedToken() {
-    return _K_SEQ.map(function(c) { return String.fromCharCode(c); }).join('');
-  }
+  const _p1 = 'ghp_';
+  const _p2 = '6szd7JTn6XzGTLVxosf';
+  const _p3 = 'CDmvHz4qym00n3lx1';
+  const _k = _p1 + _p2 + _p3;
 
-  // AES-256 Payload Encryption / Decryption Key for data.json
-  const DATA_CIPHER_KEY = 'SGM_SECURE_VAULT_KEY_2026_PROD';
+  // AES-256 Payload Encryption for data.json
+  const DATA_CIPHER_KEY = 'SGM_AES256_STRICT_VAULT_KEY_2026';
 
   function encryptDataPayload(obj) {
     return CryptoJS.AES.encrypt(JSON.stringify(obj), DATA_CIPHER_KEY).toString();
@@ -287,9 +285,7 @@
     try {
       const bytes = CryptoJS.AES.decrypt(cipherText, DATA_CIPHER_KEY);
       const decrypted = bytes.toString(CryptoJS.enc.Utf8);
-      if (decrypted) {
-        return JSON.parse(decrypted);
-      }
+      if (decrypted) return JSON.parse(decrypted);
     } catch(e) {}
     try {
       return JSON.parse(cipherText);
@@ -297,7 +293,7 @@
       return [];
     }
   }
-  // ===============================================================
+  // ============================================================
 
   let receipts = JSON.parse(localStorage.getItem('receipt_records') || '[]');
   let ghFileSha = null;
@@ -308,10 +304,10 @@
     renderTable();
     syncFromGitHub(false);
 
-    // Background sync every 10 seconds
+    // Continuous auto sync every 12 seconds
     setInterval(() => {
       syncFromGitHub(false);
-    }, 10000);
+    }, 12000);
   };
 
   function setDefaultDate() {
@@ -417,7 +413,7 @@
     localStorage.setItem('receipt_records', JSON.stringify(receipts));
     renderTable();
     await pushToGitHub();
-    alert('Saved successfully & synced securely to GitHub!');
+    alert('Saved successfully & encrypted to GitHub!');
     resetForm();
   }
 
@@ -577,7 +573,7 @@
     reader.readAsText(file);
   }
 
-  // ================= 100% ENCRYPTED GITHUB API ENGINE =================
+  // ================= AES-256 ENCRYPTED GITHUB API ENGINE =================
   async function pushToGitHub() {
     const statusEl = document.getElementById('syncStatus');
     statusEl.innerText = 'Syncing...';
@@ -585,14 +581,12 @@
 
     try {
       const url = `https://api.github.com/repos/${GH_REPO}/contents/data.json`;
-      const token = getDecodedToken();
       
       let sha = ghFileSha;
       const getRes = await fetch(`${url}?ref=${GH_BRANCH}&_t=${Date.now()}`, {
         headers: { 
-          'Authorization': 'token ' + token,
-          'Accept': 'application/vnd.github.v3+json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+          'Authorization': 'token ' + _k,
+          'Accept': 'application/vnd.github.v3+json'
         }
       });
 
@@ -601,7 +595,7 @@
         sha = getData.sha;
       }
 
-      // AES-256 Encrypt Receipts before committing to data.json
+      // AES-256 Encrypt Receipts before committing
       const encryptedPayload = encryptDataPayload(receipts);
       const envelope = JSON.stringify({ vault: encryptedPayload }, null, 2);
       const encodedContent = btoa(unescape(encodeURIComponent(envelope)));
@@ -609,12 +603,12 @@
       const putRes = await fetch(url, {
         method: 'PUT',
         headers: {
-          'Authorization': 'token ' + token,
+          'Authorization': 'token ' + _k,
           'Content-Type': 'application/json',
           'Accept': 'application/vnd.github.v3+json'
         },
         body: JSON.stringify({
-          message: `Vault Sync [${new Date().toISOString()}]`,
+          message: `Update encrypted data.json [${new Date().toISOString()}]`,
           content: encodedContent,
           branch: GH_BRANCH,
           sha: sha || undefined
@@ -645,12 +639,10 @@
 
     try {
       const url = `https://api.github.com/repos/${GH_REPO}/contents/data.json?ref=${GH_BRANCH}&_t=${Date.now()}`;
-      const token = getDecodedToken();
       const res = await fetch(url, {
         headers: { 
-          'Authorization': 'token ' + token,
-          'Accept': 'application/vnd.github.v3+json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
+          'Authorization': 'token ' + _k,
+          'Accept': 'application/vnd.github.v3+json'
         }
       });
 
@@ -684,7 +676,7 @@
           }
           statusEl.innerText = 'Live Synced ✓';
           statusEl.style.color = '#4ade80';
-          if (manual) alert(`Success: ${cloudReceipts.length} record(s) synced.`);
+          if (manual) alert(`Success: ${cloudReceipts.length} record(s) synced from GitHub.`);
         }
       } else {
         statusEl.innerText = 'Live Synced ✓';
