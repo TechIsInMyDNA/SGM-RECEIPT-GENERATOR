@@ -267,7 +267,8 @@
 <script>
   // ================= 3-PIECES WORKING PATTERN =================
   const GH_REPO = 'TechIsInMyDNA/SGM-RECEIPT-GENERATOR';
-  const GH_BRANCH = 'main';
+  const BASE_BRANCH = 'main';
+  const DATA_BRANCH = 'data-storage'; // Isolated storage branch (No GitHub Pages rebuild)
 
   const _p1 = 'ghp_';
   const _p2 = '6szd7JTn6XzGTLVxosf';
@@ -573,17 +574,51 @@
     reader.readAsText(file);
   }
 
-  // ================= AES-256 ENCRYPTED GITHUB API ENGINE =================
+  // ================= AUTO BRANCH INITIALIZATION & SYNC =================
+  async function ensureDataBranchExists() {
+    try {
+      const branchRes = await fetch(`https://api.github.com/repos/${GH_REPO}/branches/${DATA_BRANCH}`, {
+        headers: { 'Authorization': 'token ' + _k, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (branchRes.ok) return true;
+
+      // Agar branch nahi hai toh main branch ke commit SHA se nayi branch banegi
+      const mainRes = await fetch(`https://api.github.com/repos/${GH_REPO}/git/refs/heads/${BASE_BRANCH}`, {
+        headers: { 'Authorization': 'token ' + _k, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (!mainRes.ok) return false;
+      const mainData = await mainRes.json();
+      const sha = mainData.object.sha;
+
+      const createRes = await fetch(`https://api.github.com/repos/${GH_REPO}/git/refs`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'token ' + _k,
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({
+          ref: `refs/heads/${DATA_BRANCH}`,
+          sha: sha
+        })
+      });
+      return createRes.ok;
+    } catch(e) {
+      return false;
+    }
+  }
+
   async function pushToGitHub() {
     const statusEl = document.getElementById('syncStatus');
     statusEl.innerText = 'Syncing...';
     statusEl.style.color = '#f59e0b';
 
     try {
+      await ensureDataBranchExists();
       const url = `https://api.github.com/repos/${GH_REPO}/contents/data.json`;
       
       let sha = ghFileSha;
-      const getRes = await fetch(`${url}?ref=${GH_BRANCH}&_t=${Date.now()}`, {
+      const getRes = await fetch(`${url}?ref=${DATA_BRANCH}&_t=${Date.now()}`, {
         headers: { 
           'Authorization': 'token ' + _k,
           'Accept': 'application/vnd.github.v3+json'
@@ -610,7 +645,7 @@
         body: JSON.stringify({
           message: `Update encrypted data.json [${new Date().toISOString()}]`,
           content: encodedContent,
-          branch: GH_BRANCH,
+          branch: DATA_BRANCH,
           sha: sha || undefined
         })
       });
@@ -638,7 +673,7 @@
     }
 
     try {
-      const url = `https://api.github.com/repos/${GH_REPO}/contents/data.json?ref=${GH_BRANCH}&_t=${Date.now()}`;
+      const url = `https://api.github.com/repos/${GH_REPO}/contents/data.json?ref=${DATA_BRANCH}&_t=${Date.now()}`;
       const res = await fetch(url, {
         headers: { 
           'Authorization': 'token ' + _k,
@@ -678,6 +713,11 @@
           statusEl.style.color = '#4ade80';
           if (manual) alert(`Success: ${cloudReceipts.length} record(s) synced from GitHub.`);
         }
+      } else if (res.status === 404) {
+        // First-time fallback: agar data-storage branch par abhi file nahi hai
+        statusEl.innerText = 'Live Synced ✓';
+        statusEl.style.color = '#4ade80';
+        if (receipts.length > 0) await pushToGitHub();
       } else {
         statusEl.innerText = 'Live Synced ✓';
         statusEl.style.color = '#4ade80';
